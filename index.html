@@ -13,11 +13,35 @@
         <button id="filter"><i class="fa-solid fa-filter"></i></button>
       </section>  
         <container>
-          <ul id="list"></ul>
+          <ul id="list">
+            </div>
+          </ul>
         </container>
-      
+      <dialog id="option">
+        <input class="input_modif" type="text">
+          <div class="horaire">
+          <input class="date" type="date">
+          <input class="heure" type="time">
+        </div>
+        <input class="couleur" type="color">
+        <label for="categorie_select">Choisis une catégorie</label>
+        <select name="catégorie" id="categorie_select" multiple>
+          <option value="">--Choisis une catégorie--</option>
+          <option value="santé">Santé</option>
+          <option value="travail">Travail</option>
+          <option value="administratif">Administratif</option>
+          <option value="loisir">Loisir</option>
+          <option value="sport">Sport</option>
+          <option value="courses">Courses</option>
+          <option value="maison">Maison</option>
+          <option value="perso">Perso</option>
+          <option value="urgent">Urgent</option>
+        </select>
+        <button class="annuler">Annuler</button>
+        <button class="save">Sauvegarder</button>
+      </dialog>
       
         
     </body>
-    <script src="script.js"></script>
+    <script src="index.js"></script>
 </HTml:5>
