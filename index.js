@@ -12,6 +12,21 @@ const taskDateInput = document.querySelector(".date");
 const taskTimeInput = document.querySelector(".heure");
 const taskCategorie = document.getElementById("categorie_select");
 
+// Variables pour la modal de filtre
+const filterModal = document.getElementById("filter-modal");
+const filterCategory = document.getElementById("filter-category");
+const categoryColors = document.getElementById("category-colors");
+const sortChronological = document.getElementById("sort-chronological");
+const filterApplyBtn = document.querySelector(".filter-apply");
+const filterAnnulerBtn = document.querySelector(".filter-annuler");
+
+// Stockage des couleurs liées aux catégories
+let categoryColorMap = JSON.parse(localStorage.getItem("categoryColors")) || {};
+
+// Variables pour les filtres actifs
+let activeFilter = "all"; // "all", "none", ou nom de catégorie
+let activeSort = false; // true pour tri chronologique
+
 // Fonction pour appliquer la couleur à une tâche
 function applyColorToTask(task, color) {
   if (!task || !color) return;
@@ -33,11 +48,112 @@ function applyColorToTask(task, color) {
   }
 }
 
+// Fonction pour sauvegarder toutes les tâches dans localStorage
+function saveTasksToStorage() {
+  const tasks = Array.from(list.querySelectorAll(".task"));
+  const tasksData = tasks.map(task => {
+    const span = task.querySelector("span");
+    const checkbox = task.querySelector("input[type='checkbox']");
+    const dateTimeElement = task.querySelector(".task-datetime");
+    
+    return {
+      text: span ? span.textContent : "",
+      date: task.dataset.date || "",
+      time: task.dataset.time || "",
+      color: task.dataset.color || "#a63a50",
+      category: task.dataset.category || "",
+      checked: checkbox ? checkbox.checked : false
+    };
+  });
+  
+  localStorage.setItem("tasks", JSON.stringify(tasksData));
+}
+
+// Fonction pour charger les tâches depuis localStorage
+function loadTasksFromStorage() {
+  const tasksData = JSON.parse(localStorage.getItem("tasks")) || [];
+  
+  tasksData.forEach(taskData => {
+    const newTask = document.createElement("div");
+    newTask.className = "task";
+    
+    const label = document.createElement("label");
+    label.className = "form-control";
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.name = "checkbox";
+    checkbox.checked = taskData.checked || false;
+    label.appendChild(checkbox);
+    
+    const span = document.createElement("span");
+    span.textContent = taskData.text || "";
+    
+    const trashBtn = document.createElement("button");
+    trashBtn.className = "trash";
+    const trashIcon = document.createElement("i");
+    trashIcon.className = "fa-solid fa-trash";
+    trashBtn.appendChild(trashIcon);
+    
+    newTask.appendChild(label);
+    newTask.appendChild(span);
+    
+    // Ajouter la date/heure si elle existe (entre span et trashBtn)
+    if (taskData.date || taskData.time) {
+      const dateTimeElement = document.createElement("span");
+      dateTimeElement.className = "task-datetime";
+      
+      let dateTimeText = "";
+      if (taskData.date && taskData.time) {
+        const date = new Date(taskData.date + "T" + taskData.time);
+        dateTimeText = date.toLocaleDateString("fr-FR", { 
+          day: "2-digit", 
+          month: "2-digit", 
+          year: "numeric" 
+        }) + " " + date.toLocaleTimeString("fr-FR", { 
+          hour: "2-digit", 
+          minute: "2-digit" 
+        });
+      } else if (taskData.date) {
+        const date = new Date(taskData.date);
+        dateTimeText = date.toLocaleDateString("fr-FR", { 
+          day: "2-digit", 
+          month: "2-digit", 
+          year: "numeric" 
+        });
+      } else if (taskData.time) {
+        const time = taskData.time.split(":");
+        dateTimeText = time[0] + ":" + time[1];
+      }
+      
+      dateTimeElement.textContent = dateTimeText;
+      newTask.appendChild(dateTimeElement);
+    }
+    
+    newTask.appendChild(trashBtn);
+    
+    // Restaurer les data-attributes
+    if (taskData.date) newTask.dataset.date = taskData.date;
+    if (taskData.time) newTask.dataset.time = taskData.time;
+    if (taskData.color) newTask.dataset.color = taskData.color;
+    if (taskData.category) newTask.dataset.category = taskData.category;
+    
+    // Appliquer la couleur
+    applyColorToTask(newTask, taskData.color || "#a63a50");
+    
+    // Ajouter la tâche à la liste
+    list.appendChild(newTask);
+    
+    // Ajouter l'événement de suppression
+    addDeleteListener(trashBtn, newTask);
+  });
+}
+
 function addDeleteListener(trashBtn, taskElement) {
   trashBtn.addEventListener("click", () => {
     taskElement.style.animation = "slideOut 0.3s ease-out";
     setTimeout(() => {
       taskElement.remove();
+      saveTasksToStorage(); // Sauvegarder après suppression
     }, 300);
   });
 }
@@ -97,6 +213,9 @@ function addNewTask() {
     
     // Ajouter l'événement de suppression au bouton trash
     addDeleteListener(trashBtn, newTask);
+    
+    // Sauvegarder dans localStorage
+    saveTasksToStorage();
   }
 }
 
@@ -270,23 +389,33 @@ function saveTaskChanges() {
     delete currentTask.dataset.time;
   }
   
-  // 3. Appliquer la couleur
-  const selectedColor = clr ? clr.value : "#a63a50";
-  applyColorToTask(currentTask, selectedColor);
-  currentTask.dataset.color = selectedColor;
-  
-  // 4. Sauvegarder la catégorie
+  // 3. Sauvegarder la catégorie
+  let selectedCategoryValue = "";
   if (taskCategorie) {
     const selectedCategory = Array.from(taskCategorie.selectedOptions)[0];
     if (selectedCategory && selectedCategory.value) {
-      currentTask.dataset.category = selectedCategory.value;
+      selectedCategoryValue = selectedCategory.value;
+      currentTask.dataset.category = selectedCategoryValue;
     } else {
       delete currentTask.dataset.category;
     }
   }
   
+  // 4. Appliquer la couleur (couleur personnalisée ou couleur liée à la catégorie)
+  let selectedColor = clr ? clr.value : "#a63a50";
+  // Si une couleur est liée à la catégorie, l'utiliser
+  if (selectedCategoryValue && categoryColorMap[selectedCategoryValue]) {
+    selectedColor = categoryColorMap[selectedCategoryValue];
+  }
+  applyColorToTask(currentTask, selectedColor);
+  currentTask.dataset.color = selectedColor;
+  
   // Réinitialiser currentTask et fermer la modal
   currentTask = null;
+  
+  // Sauvegarder dans localStorage
+  saveTasksToStorage();
+  
   opt.close();
 }
 
@@ -334,6 +463,147 @@ opt.addEventListener("close", () => {
   if (currentTask) {
     // Si la modal se ferme sans sauvegarder, on peut garder les valeurs ou les réinitialiser
     // Pour l'instant, on ne fait rien pour permettre de rouvrir avec les mêmes valeurs
+  }
+});
+
+// ========== MODAL DE FILTRE ==========
+
+// Catégories disponibles
+const categories = ["santé", "travail", "administratif", "loisir", "sport", "courses", "maison", "perso", "urgent"];
+
+// Fonction pour créer les inputs de couleur pour chaque catégorie
+function createCategoryColorInputs() {
+  categoryColors.innerHTML = "";
+  
+  categories.forEach(category => {
+    const item = document.createElement("div");
+    item.className = "category-color-item";
+    
+    const select = document.createElement("select");
+    select.value = category;
+    select.innerHTML = `<option value="${category}">${category.charAt(0).toUpperCase() + category.slice(1)}</option>`;
+    select.disabled = true;
+    
+    const colorInput = document.createElement("input");
+    colorInput.type = "color";
+    colorInput.value = categoryColorMap[category] || "#a63a50";
+    colorInput.addEventListener("change", (e) => {
+      categoryColorMap[category] = e.target.value;
+      localStorage.setItem("categoryColors", JSON.stringify(categoryColorMap));
+      applyCategoryColors();
+    });
+    
+    item.appendChild(select);
+    item.appendChild(colorInput);
+    categoryColors.appendChild(item);
+  });
+}
+
+// Fonction pour appliquer les couleurs liées aux catégories aux tâches
+function applyCategoryColors() {
+  const tasks = document.querySelectorAll(".task");
+  tasks.forEach(task => {
+    const category = task.dataset.category;
+    if (category && categoryColorMap[category]) {
+      applyColorToTask(task, categoryColorMap[category]);
+      task.dataset.color = categoryColorMap[category];
+    }
+  });
+}
+
+// Fonction pour filtrer les tâches par catégorie
+function filterTasksByCategory() {
+  const tasks = Array.from(list.querySelectorAll(".task"));
+  
+  tasks.forEach(task => {
+    const taskCategory = task.dataset.category || "";
+    
+    if (activeFilter === "all") {
+      task.style.display = "";
+    } else if (activeFilter === "none") {
+      task.style.display = taskCategory === "" ? "" : "none";
+    } else {
+      task.style.display = taskCategory === activeFilter ? "" : "none";
+    }
+  });
+}
+
+// Fonction pour trier les tâches par ordre chronologique
+function sortTasksChronologically() {
+  if (!activeSort) return;
+  
+  const tasks = Array.from(list.querySelectorAll(".task"));
+  const visibleTasks = tasks.filter(task => task.style.display !== "none");
+  const hiddenTasks = tasks.filter(task => task.style.display === "none");
+  
+  // Trier les tâches visibles par date/heure
+  visibleTasks.sort((a, b) => {
+    const dateA = a.dataset.date || "";
+    const timeA = a.dataset.time || "";
+    const dateB = b.dataset.date || "";
+    const timeB = b.dataset.time || "";
+    
+    // Si aucune date, mettre à la fin
+    if (!dateA && !dateB) return 0;
+    if (!dateA) return 1;
+    if (!dateB) return -1;
+    
+    // Créer des dates pour comparer
+    const dateTimeA = new Date(dateA + (timeA ? "T" + timeA : ""));
+    const dateTimeB = new Date(dateB + (timeB ? "T" + timeB : ""));
+    
+    return dateTimeA - dateTimeB;
+  });
+  
+  // Réorganiser dans le DOM
+  visibleTasks.forEach(task => list.appendChild(task));
+  hiddenTasks.forEach(task => list.appendChild(task));
+}
+
+// Ouvrir la modal de filtre
+btn_filter.addEventListener("click", () => {
+  filterModal.showModal();
+  createCategoryColorInputs();
+  filterCategory.value = activeFilter;
+  sortChronological.checked = activeSort;
+});
+
+// Appliquer les filtres
+filterApplyBtn.addEventListener("click", () => {
+  activeFilter = filterCategory.value;
+  activeSort = sortChronological.checked;
+  
+  filterTasksByCategory();
+  if (activeSort) {
+    sortTasksChronologically();
+  }
+  
+  filterModal.close();
+});
+
+// Annuler les filtres
+filterAnnulerBtn.addEventListener("click", () => {
+  filterModal.close();
+});
+
+// Fermer la modal avec Échap
+filterModal.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && filterModal.open) {
+    e.preventDefault();
+    filterModal.close();
+  }
+});
+
+// Charger les tâches au démarrage
+loadTasksFromStorage();
+
+// Appliquer les couleurs au chargement
+applyCategoryColors();
+
+// Sauvegarder quand une checkbox change
+list.addEventListener("change", (e) => {
+  if (e.target.type === "checkbox") {
+    saveTasksToStorage();
   }
 });
 
