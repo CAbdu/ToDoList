@@ -11,6 +11,7 @@ const horaire = document.querySelector(".horaire");
 const taskDateInput = document.querySelector(".date");
 const taskTimeInput = document.querySelector(".heure");
 const taskCategorie = document.getElementById("categorie_select");
+const themeSwitch = document.getElementById("theme-switch");
 
 // Variables pour la modal de filtre
 const filterModal = document.getElementById("filter-modal");
@@ -22,6 +23,25 @@ const filterAnnulerBtn = document.querySelector(".filter-annuler");
 
 // Stockage des couleurs liées aux catégories
 let categoryColorMap = JSON.parse(localStorage.getItem("categoryColors")) || {};
+let darkmode = localStorage.getItem('darkmode');
+
+const enableDarkmode = () => {
+  document.body.classList.add('darkmode')
+  localStorage.setItem('darkmode', 'active')
+}
+
+const disableDarkmode = () => {
+  document.body.classList.remove('darkmode')
+  localStorage.setItem('darkmode', null)
+}
+
+if(darkmode === "active")
+ enableDarkmode()
+
+themeSwitch.addEventListener("click", () => {
+  darkmode = localStorage.getItem('darkmode')
+  darkmode !== "active" ? enableDarkmode() : disableDarkmode()
+})
 
 // Variables pour les filtres actifs
 let activeFilter = "all"; // "all", "none", ou nom de catégorie

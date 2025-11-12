@@ -2,15 +2,24 @@
     <head>
         <title>ToDo List</title>
         <link rel="stylesheet" href="style.css">
+        <link rel="icon" type="image/vnd.icon" href="./assets/List_On.ico">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=wb_sunny" />
     </head>
     <body>
       <header>
         <h1 class="title">ToDo List</h1>
       </header>
-      <section class="input-block"><input type="text" id="input" placeholder=" Ajouter une nouvelle tâcher..." >
+      <section class="input-block"><input type="text" id="input" placeholder=" Ajouter une nouvelle tâche..." >
         <button id="add"><i class="fa-solid fa-plus"></i></button>
-        <button id="filter"><i class="fa-solid fa-filter"></i></button>
+        <div class="two-buttons">
+        <button id="theme-switch">
+          <i class="fa-solid fa-moon"></i>
+          <i class="fa-solid fa-sun"></i>
+
+        </button>
+          <button id="filter"><i class="fa-solid fa-filter"></i></button>
+          </div>
       </section>  
         <container>
           <ul id="list">
